@@ -1,0 +1,1420 @@
+/*
+ * main_Frame.java
+ */
+package deconvolutionapp;
+
+import org.jdesktop.application.Action;
+import org.jdesktop.application.ResourceMap;
+import org.jdesktop.application.SingleFrameApplication;
+import org.jdesktop.application.FrameView;
+import org.jdesktop.application.TaskMonitor;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.Timer;
+
+//user imports
+import java.io.*;
+import javax.swing.*;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreePath;
+
+//JFreeChart
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.event.*;
+
+
+/**
+ * The application's main frame.
+ */
+public class main_Frame extends FrameView {
+    
+    //Mass Spectrum Data Structures
+    MS_DataStructure orginal_data;
+    
+    //Configuration File for Project
+    ConfigReader ConfigFile;
+    
+    //ChartControl Objects
+    Double MZ_Value; //DeConvolution
+    Double MZ_Range; //DeConvolution
+    Double MZ_Value_Observation; //Observation Vector Value
+    Double MZ_Range_Observation; //Observation Vector Range
+    
+    /**
+     * Constructor for main_Frame
+     * 
+     * @param app 
+     */
+    public main_Frame(SingleFrameApplication app) {
+        super(app);
+
+        initComponents();
+        
+        try{
+            //create the class for the configuration reader
+            this.ConfigFile = new ConfigReader();
+            
+            //Update the directory tree
+            updateDirectory();
+        }
+        catch(Exception ex){
+            ex.printStackTrace();
+        }
+
+        // status bar initialization - message timeout, idle icon and busy animation, etc
+        ResourceMap resourceMap = getResourceMap();
+        int messageTimeout = resourceMap.getInteger("StatusBar.messageTimeout");
+        messageTimer = new Timer(messageTimeout, new ActionListener() {
+
+            public void actionPerformed(ActionEvent e) {
+                statusMessageLabel.setText("");
+            }
+        });
+        messageTimer.setRepeats(false);
+        int busyAnimationRate = resourceMap.getInteger("StatusBar.busyAnimationRate");
+        for (int i = 0; i < busyIcons.length; i++) {
+            busyIcons[i] = resourceMap.getIcon("StatusBar.busyIcons[" + i + "]");
+        }
+        busyIconTimer = new Timer(busyAnimationRate, new ActionListener() {
+
+            public void actionPerformed(ActionEvent e) {
+                busyIconIndex = (busyIconIndex + 1) % busyIcons.length;
+                statusAnimationLabel.setIcon(busyIcons[busyIconIndex]);
+            }
+        });
+        idleIcon = resourceMap.getIcon("StatusBar.idleIcon");
+        statusAnimationLabel.setIcon(idleIcon);
+        progressBar.setVisible(false);
+
+        // connecting action tasks to status bar via TaskMonitor
+        TaskMonitor taskMonitor = new TaskMonitor(getApplication().getContext());
+        taskMonitor.addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+
+            public void propertyChange(java.beans.PropertyChangeEvent evt) {
+                String propertyName = evt.getPropertyName();
+                if ("started".equals(propertyName)) {
+                    if (!busyIconTimer.isRunning()) {
+                        statusAnimationLabel.setIcon(busyIcons[0]);
+                        busyIconIndex = 0;
+                        busyIconTimer.start();
+                    }
+                    progressBar.setVisible(true);
+                    progressBar.setIndeterminate(true);
+                } else if ("done".equals(propertyName)) {
+                    busyIconTimer.stop();
+                    statusAnimationLabel.setIcon(idleIcon);
+                    progressBar.setVisible(false);
+                    progressBar.setValue(0);
+                } else if ("message".equals(propertyName)) {
+                    String text = (String) (evt.getNewValue());
+                    statusMessageLabel.setText((text == null) ? "" : text);
+                    messageTimer.restart();
+                } else if ("progress".equals(propertyName)) {
+                    int value = (Integer) (evt.getNewValue());
+                    progressBar.setVisible(true);
+                    progressBar.setIndeterminate(false);
+                    progressBar.setValue(value);
+                }
+            }
+        });
+    
+    }
+
+    /**
+     * Open the about box
+     */
+    @Action
+    public void showAboutBox() {
+        if (aboutBox == null) {
+            JFrame mainFrame = DeConvolutionApp_RevD.getApplication().getMainFrame();
+            aboutBox = new AboutBox(mainFrame);
+            aboutBox.setLocationRelativeTo(mainFrame);
+        }
+        DeConvolutionApp_RevD.getApplication().show(aboutBox);
+    }
+
+    /** This method is called from within the constructor to
+     * initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is
+     * always regenerated by the Form Editor.
+     */
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    private void initComponents() {
+
+        mainPanel = new javax.swing.JPanel();
+        DirectoryPanel = new javax.swing.JPanel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        Directory = new javax.swing.JTree();
+        WorkspacePanel = new javax.swing.JPanel();
+        WorkspaceTabPanel = new javax.swing.JTabbedPane();
+        OrginalPanel = new javax.swing.JPanel();
+        mzPanel = new org.jfree.chart.ChartPanel(null);
+        ionPanel = new org.jfree.chart.ChartPanel(null);
+        mzDomainlabel = new javax.swing.JLabel();
+        eVDomainLabel = new javax.swing.JLabel();
+        eVRange = new javax.swing.JTextField();
+        DeConvolvedTabPanel = new javax.swing.JTabbedPane();
+        KernelTab = new javax.swing.JPanel();
+        KernelPanel = new javax.swing.JPanel();
+        ObservationTab = new javax.swing.JPanel();
+        ObservationPanel = new javax.swing.JPanel();
+        LSTab = new javax.swing.JPanel();
+        LSPanel = new org.jfree.chart.ChartPanel(null);
+        MLTab = new javax.swing.JPanel();
+        MLPanel = new org.jfree.chart.ChartPanel(null);
+        ISTATab = new javax.swing.JPanel();
+        ISTAPanel = new javax.swing.JPanel();
+        MMVTab = new javax.swing.JPanel();
+        MMVPanel = new org.jfree.chart.ChartPanel(null);
+        menuBar = new javax.swing.JMenuBar();
+        javax.swing.JMenu fileMenu = new javax.swing.JMenu();
+        NewProjectmenu = new javax.swing.JMenuItem();
+        OpenProjectmenu = new javax.swing.JMenuItem();
+        fileSeperator = new javax.swing.JPopupMenu.Separator();
+        SaveProjectmenu = new javax.swing.JMenuItem();
+        CloseProjectmenu = new javax.swing.JMenuItem();
+        Printmenu = new javax.swing.JMenuItem();
+        javax.swing.JMenuItem exitMenuItem = new javax.swing.JMenuItem();
+        Viewmenu = new javax.swing.JMenu();
+        OrginalSpectrummenu = new javax.swing.JCheckBoxMenuItem();
+        viewSeperator = new javax.swing.JPopupMenu.Separator();
+        LSSpectrummenu = new javax.swing.JCheckBoxMenuItem();
+        MLSpectrummenu = new javax.swing.JCheckBoxMenuItem();
+        CSSpectrummenu = new javax.swing.JCheckBoxMenuItem();
+        EXEmenu = new javax.swing.JMenu();
+        DefineMZmenu = new javax.swing.JMenuItem();
+        jSeparator2 = new javax.swing.JPopupMenu.Separator();
+        ConvolutionKernelWizardmenu = new javax.swing.JMenuItem();
+        EXEseperator2 = new javax.swing.JPopupMenu.Separator();
+        ObservationSpectrum = new javax.swing.JMenuItem();
+        jSeparator1 = new javax.swing.JPopupMenu.Separator();
+        DeConvolutionWizardmenu = new javax.swing.JMenuItem();
+        jMenu1 = new javax.swing.JMenu();
+        jMenuItem1 = new javax.swing.JMenuItem();
+        javax.swing.JMenu helpMenu = new javax.swing.JMenu();
+        jMenuItem2 = new javax.swing.JMenuItem();
+        javax.swing.JMenuItem aboutMenuItem = new javax.swing.JMenuItem();
+        statusPanel = new javax.swing.JPanel();
+        javax.swing.JSeparator statusPanelSeparator = new javax.swing.JSeparator();
+        statusMessageLabel = new javax.swing.JLabel();
+        statusAnimationLabel = new javax.swing.JLabel();
+        progressBar = new javax.swing.JProgressBar();
+        DirectoryPopUp = new javax.swing.JPopupMenu();
+        openProject = new javax.swing.JMenuItem();
+
+        mainPanel.setName("mainPanel"); // NOI18N
+
+        org.jdesktop.application.ResourceMap resourceMap = org.jdesktop.application.Application.getInstance(deconvolutionapp.DeConvolutionApp_RevD.class).getContext().getResourceMap(main_Frame.class);
+        DirectoryPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(resourceMap.getString("DirectoryPanel.border.title"))); // NOI18N
+        DirectoryPanel.setName("DirectoryPanel"); // NOI18N
+
+        jScrollPane1.setName("jScrollPane1"); // NOI18N
+
+        Directory.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(0, 0, 0), 1, true));
+        javax.swing.tree.DefaultMutableTreeNode treeNode1 = new javax.swing.tree.DefaultMutableTreeNode("root");
+        Directory.setModel(new javax.swing.tree.DefaultTreeModel(treeNode1));
+        Directory.setName("Directory"); // NOI18N
+        Directory.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                DirectoryMouseClicked(evt);
+            }
+        });
+        jScrollPane1.setViewportView(Directory);
+
+        javax.swing.GroupLayout DirectoryPanelLayout = new javax.swing.GroupLayout(DirectoryPanel);
+        DirectoryPanel.setLayout(DirectoryPanelLayout);
+        DirectoryPanelLayout.setHorizontalGroup(
+            DirectoryPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(DirectoryPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 216, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        DirectoryPanelLayout.setVerticalGroup(
+            DirectoryPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(DirectoryPanelLayout.createSequentialGroup()
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 872, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+
+        WorkspacePanel.setBorder(javax.swing.BorderFactory.createTitledBorder(resourceMap.getString("WorkspacePanel.border.title"))); // NOI18N
+        WorkspacePanel.setName("WorkspacePanel"); // NOI18N
+
+        WorkspaceTabPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        WorkspaceTabPanel.setName("WorkspaceTabPanel"); // NOI18N
+        WorkspaceTabPanel.setPreferredSize(new java.awt.Dimension(801, 600));
+
+        OrginalPanel.setBackground(resourceMap.getColor("OrginalPanel.background")); // NOI18N
+        OrginalPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
+        OrginalPanel.setName("OrginalPanel"); // NOI18N
+
+        mzPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        mzPanel.setToolTipText(resourceMap.getString("mzPanel.toolTipText")); // NOI18N
+        mzPanel.setName("mzPanel"); // NOI18N
+        mzPanel.setPreferredSize(new java.awt.Dimension(762, 200));
+
+        javax.swing.GroupLayout mzPanelLayout = new javax.swing.GroupLayout(mzPanel);
+        mzPanel.setLayout(mzPanelLayout);
+        mzPanelLayout.setHorizontalGroup(
+            mzPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 519, Short.MAX_VALUE)
+        );
+        mzPanelLayout.setVerticalGroup(
+            mzPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 460, Short.MAX_VALUE)
+        );
+
+        ionPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        ionPanel.setName("ionPanel"); // NOI18N
+        ionPanel.setPreferredSize(new java.awt.Dimension(762, 200));
+
+        javax.swing.GroupLayout ionPanelLayout = new javax.swing.GroupLayout(ionPanel);
+        ionPanel.setLayout(ionPanelLayout);
+        ionPanelLayout.setHorizontalGroup(
+            ionPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 519, Short.MAX_VALUE)
+        );
+        ionPanelLayout.setVerticalGroup(
+            ionPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 282, Short.MAX_VALUE)
+        );
+
+        mzDomainlabel.setFont(resourceMap.getFont("mzDomainlabel.font")); // NOI18N
+        mzDomainlabel.setText(resourceMap.getString("mzDomainlabel.text")); // NOI18N
+        mzDomainlabel.setName("mzDomainlabel"); // NOI18N
+
+        eVDomainLabel.setFont(resourceMap.getFont("eVDomainLabel.font")); // NOI18N
+        eVDomainLabel.setText(resourceMap.getString("eVDomainLabel.text")); // NOI18N
+        eVDomainLabel.setName("eVDomainLabel"); // NOI18N
+
+        eVRange.setBackground(resourceMap.getColor("eVRange.background")); // NOI18N
+        eVRange.setText(resourceMap.getString("eVRange.text")); // NOI18N
+        eVRange.setBorder(null);
+        eVRange.setName("eVRange"); // NOI18N
+
+        javax.swing.GroupLayout OrginalPanelLayout = new javax.swing.GroupLayout(OrginalPanel);
+        OrginalPanel.setLayout(OrginalPanelLayout);
+        OrginalPanelLayout.setHorizontalGroup(
+            OrginalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, OrginalPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(OrginalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(mzPanel, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 523, Short.MAX_VALUE)
+                    .addComponent(ionPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 523, Short.MAX_VALUE)
+                    .addComponent(mzDomainlabel, javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(eVDomainLabel, javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(eVRange, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 473, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap())
+        );
+        OrginalPanelLayout.setVerticalGroup(
+            OrginalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(OrginalPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(mzDomainlabel)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(mzPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 464, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(eVDomainLabel)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(eVRange, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(ionPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 286, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
+        );
+
+        WorkspaceTabPanel.addTab(resourceMap.getString("OrginalPanel.TabConstraints.tabTitle"), OrginalPanel); // NOI18N
+
+        DeConvolvedTabPanel.setName("DeConvolvedTabPanel"); // NOI18N
+        DeConvolvedTabPanel.setPreferredSize(new java.awt.Dimension(794, 300));
+
+        KernelTab.setBackground(resourceMap.getColor("KernelTab.background")); // NOI18N
+        KernelTab.setName("KernelTab"); // NOI18N
+
+        KernelPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        KernelPanel.setToolTipText(resourceMap.getString("KernelPanel.toolTipText")); // NOI18N
+        KernelPanel.setName("KernelPanel"); // NOI18N
+        KernelPanel.setPreferredSize(new java.awt.Dimension(520, 400));
+
+        javax.swing.GroupLayout KernelPanelLayout = new javax.swing.GroupLayout(KernelPanel);
+        KernelPanel.setLayout(KernelPanelLayout);
+        KernelPanelLayout.setHorizontalGroup(
+            KernelPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 516, Short.MAX_VALUE)
+        );
+        KernelPanelLayout.setVerticalGroup(
+            KernelPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 396, Short.MAX_VALUE)
+        );
+
+        javax.swing.GroupLayout KernelTabLayout = new javax.swing.GroupLayout(KernelTab);
+        KernelTab.setLayout(KernelTabLayout);
+        KernelTabLayout.setHorizontalGroup(
+            KernelTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(KernelTabLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(KernelPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        KernelTabLayout.setVerticalGroup(
+            KernelTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, KernelTabLayout.createSequentialGroup()
+                .addContainerGap(401, Short.MAX_VALUE)
+                .addComponent(KernelPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+
+        DeConvolvedTabPanel.addTab(resourceMap.getString("KernelTab.TabConstraints.tabTitle"), KernelTab); // NOI18N
+
+        ObservationTab.setBackground(resourceMap.getColor("ObservationTab.background")); // NOI18N
+        ObservationTab.setName("ObservationTab"); // NOI18N
+
+        ObservationPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        ObservationPanel.setName("ObservationPanel"); // NOI18N
+        ObservationPanel.setPreferredSize(new java.awt.Dimension(720, 400));
+
+        javax.swing.GroupLayout ObservationPanelLayout = new javax.swing.GroupLayout(ObservationPanel);
+        ObservationPanel.setLayout(ObservationPanelLayout);
+        ObservationPanelLayout.setHorizontalGroup(
+            ObservationPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 516, Short.MAX_VALUE)
+        );
+        ObservationPanelLayout.setVerticalGroup(
+            ObservationPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 396, Short.MAX_VALUE)
+        );
+
+        javax.swing.GroupLayout ObservationTabLayout = new javax.swing.GroupLayout(ObservationTab);
+        ObservationTab.setLayout(ObservationTabLayout);
+        ObservationTabLayout.setHorizontalGroup(
+            ObservationTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(ObservationTabLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(ObservationPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 520, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        ObservationTabLayout.setVerticalGroup(
+            ObservationTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, ObservationTabLayout.createSequentialGroup()
+                .addContainerGap(401, Short.MAX_VALUE)
+                .addComponent(ObservationPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+
+        DeConvolvedTabPanel.addTab(resourceMap.getString("ObservationTab.TabConstraints.tabTitle"), ObservationTab); // NOI18N
+
+        LSTab.setBackground(resourceMap.getColor("LSTab.background")); // NOI18N
+        LSTab.setName("LSTab"); // NOI18N
+
+        LSPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        LSPanel.setEnabled(false);
+        LSPanel.setName("LSPanel"); // NOI18N
+        LSPanel.setPreferredSize(new java.awt.Dimension(520, 400));
+
+        javax.swing.GroupLayout LSPanelLayout = new javax.swing.GroupLayout(LSPanel);
+        LSPanel.setLayout(LSPanelLayout);
+        LSPanelLayout.setHorizontalGroup(
+            LSPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 516, Short.MAX_VALUE)
+        );
+        LSPanelLayout.setVerticalGroup(
+            LSPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 396, Short.MAX_VALUE)
+        );
+
+        javax.swing.GroupLayout LSTabLayout = new javax.swing.GroupLayout(LSTab);
+        LSTab.setLayout(LSTabLayout);
+        LSTabLayout.setHorizontalGroup(
+            LSTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(LSTabLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(LSPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        LSTabLayout.setVerticalGroup(
+            LSTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, LSTabLayout.createSequentialGroup()
+                .addContainerGap(401, Short.MAX_VALUE)
+                .addComponent(LSPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+
+        DeConvolvedTabPanel.addTab(resourceMap.getString("LSTab.TabConstraints.tabTitle"), LSTab); // NOI18N
+
+        MLTab.setBackground(resourceMap.getColor("MLTab.background")); // NOI18N
+        MLTab.setName("MLTab"); // NOI18N
+
+        MLPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        MLPanel.setName("MLPanel"); // NOI18N
+        MLPanel.setPreferredSize(new java.awt.Dimension(520, 400));
+
+        javax.swing.GroupLayout MLPanelLayout = new javax.swing.GroupLayout(MLPanel);
+        MLPanel.setLayout(MLPanelLayout);
+        MLPanelLayout.setHorizontalGroup(
+            MLPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 516, Short.MAX_VALUE)
+        );
+        MLPanelLayout.setVerticalGroup(
+            MLPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 396, Short.MAX_VALUE)
+        );
+
+        javax.swing.GroupLayout MLTabLayout = new javax.swing.GroupLayout(MLTab);
+        MLTab.setLayout(MLTabLayout);
+        MLTabLayout.setHorizontalGroup(
+            MLTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(MLTabLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(MLPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        MLTabLayout.setVerticalGroup(
+            MLTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, MLTabLayout.createSequentialGroup()
+                .addContainerGap(401, Short.MAX_VALUE)
+                .addComponent(MLPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+
+        DeConvolvedTabPanel.addTab(resourceMap.getString("MLTab.TabConstraints.tabTitle"), MLTab); // NOI18N
+
+        ISTATab.setBackground(resourceMap.getColor("ISTATab.background")); // NOI18N
+        ISTATab.setName("ISTATab"); // NOI18N
+
+        ISTAPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        ISTAPanel.setToolTipText(resourceMap.getString("ISTAPanel.toolTipText")); // NOI18N
+        ISTAPanel.setName("ISTAPanel"); // NOI18N
+        ISTAPanel.setPreferredSize(new java.awt.Dimension(520, 400));
+
+        javax.swing.GroupLayout ISTAPanelLayout = new javax.swing.GroupLayout(ISTAPanel);
+        ISTAPanel.setLayout(ISTAPanelLayout);
+        ISTAPanelLayout.setHorizontalGroup(
+            ISTAPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 516, Short.MAX_VALUE)
+        );
+        ISTAPanelLayout.setVerticalGroup(
+            ISTAPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 407, Short.MAX_VALUE)
+        );
+
+        javax.swing.GroupLayout ISTATabLayout = new javax.swing.GroupLayout(ISTATab);
+        ISTATab.setLayout(ISTATabLayout);
+        ISTATabLayout.setHorizontalGroup(
+            ISTATabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(ISTATabLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(ISTAPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        ISTATabLayout.setVerticalGroup(
+            ISTATabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, ISTATabLayout.createSequentialGroup()
+                .addContainerGap(390, Short.MAX_VALUE)
+                .addComponent(ISTAPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 411, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
+        );
+
+        DeConvolvedTabPanel.addTab(resourceMap.getString("ISTATab.TabConstraints.tabTitle"), ISTATab); // NOI18N
+
+        MMVTab.setBackground(resourceMap.getColor("MMVTab.background")); // NOI18N
+        MMVTab.setName("MMVTab"); // NOI18N
+
+        MMVPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        MMVPanel.setName("MMVPanel"); // NOI18N
+        MMVPanel.setPreferredSize(new java.awt.Dimension(520, 400));
+
+        javax.swing.GroupLayout MMVPanelLayout = new javax.swing.GroupLayout(MMVPanel);
+        MMVPanel.setLayout(MMVPanelLayout);
+        MMVPanelLayout.setHorizontalGroup(
+            MMVPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 516, Short.MAX_VALUE)
+        );
+        MMVPanelLayout.setVerticalGroup(
+            MMVPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 396, Short.MAX_VALUE)
+        );
+
+        javax.swing.GroupLayout MMVTabLayout = new javax.swing.GroupLayout(MMVTab);
+        MMVTab.setLayout(MMVTabLayout);
+        MMVTabLayout.setHorizontalGroup(
+            MMVTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(MMVTabLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(MMVPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        MMVTabLayout.setVerticalGroup(
+            MMVTabLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, MMVTabLayout.createSequentialGroup()
+                .addContainerGap(401, Short.MAX_VALUE)
+                .addComponent(MMVPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+
+        DeConvolvedTabPanel.addTab(resourceMap.getString("MMVTab.TabConstraints.tabTitle"), MMVTab); // NOI18N
+
+        WorkspaceTabPanel.addTab(resourceMap.getString("DeConvolvedTabPanel.TabConstraints.tabTitle"), DeConvolvedTabPanel); // NOI18N
+
+        javax.swing.GroupLayout WorkspacePanelLayout = new javax.swing.GroupLayout(WorkspacePanel);
+        WorkspacePanel.setLayout(WorkspacePanelLayout);
+        WorkspacePanelLayout.setHorizontalGroup(
+            WorkspacePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(WorkspacePanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(WorkspaceTabPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 554, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        WorkspacePanelLayout.setVerticalGroup(
+            WorkspacePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(WorkspacePanelLayout.createSequentialGroup()
+                .addComponent(WorkspaceTabPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 872, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+
+        javax.swing.GroupLayout mainPanelLayout = new javax.swing.GroupLayout(mainPanel);
+        mainPanel.setLayout(mainPanelLayout);
+        mainPanelLayout.setHorizontalGroup(
+            mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(mainPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(DirectoryPanel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(WorkspacePanel, javax.swing.GroupLayout.DEFAULT_SIZE, 586, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        mainPanelLayout.setVerticalGroup(
+            mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, mainPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(WorkspacePanel, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 910, Short.MAX_VALUE)
+                    .addComponent(DirectoryPanel, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 910, Short.MAX_VALUE))
+                .addContainerGap())
+        );
+
+        menuBar.setName("menuBar"); // NOI18N
+
+        fileMenu.setText(resourceMap.getString("fileMenu.text")); // NOI18N
+        fileMenu.setName("fileMenu"); // NOI18N
+
+        NewProjectmenu.setText(resourceMap.getString("NewProjectmenu.text")); // NOI18N
+        NewProjectmenu.setToolTipText(resourceMap.getString("NewProjectmenu.toolTipText")); // NOI18N
+        NewProjectmenu.setName("NewProjectmenu"); // NOI18N
+        NewProjectmenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                NewProjectmenuActionPerformed(evt);
+            }
+        });
+        fileMenu.add(NewProjectmenu);
+
+        OpenProjectmenu.setText(resourceMap.getString("OpenProjectmenu.text")); // NOI18N
+        OpenProjectmenu.setToolTipText(resourceMap.getString("OpenProjectmenu.toolTipText")); // NOI18N
+        OpenProjectmenu.setName("OpenProjectmenu"); // NOI18N
+        OpenProjectmenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                OpenProjectmenuActionPerformed(evt);
+            }
+        });
+        fileMenu.add(OpenProjectmenu);
+
+        fileSeperator.setName("fileSeperator"); // NOI18N
+        fileMenu.add(fileSeperator);
+
+        SaveProjectmenu.setText(resourceMap.getString("SaveProjectmenu.text")); // NOI18N
+        SaveProjectmenu.setToolTipText(resourceMap.getString("SaveProjectmenu.toolTipText")); // NOI18N
+        SaveProjectmenu.setEnabled(false);
+        SaveProjectmenu.setName("SaveProjectmenu"); // NOI18N
+        fileMenu.add(SaveProjectmenu);
+
+        CloseProjectmenu.setText(resourceMap.getString("CloseProjectmenu.text")); // NOI18N
+        CloseProjectmenu.setToolTipText(resourceMap.getString("CloseProjectmenu.toolTipText")); // NOI18N
+        CloseProjectmenu.setEnabled(false);
+        CloseProjectmenu.setName("CloseProjectmenu"); // NOI18N
+        CloseProjectmenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                CloseProjectmenuActionPerformed(evt);
+            }
+        });
+        fileMenu.add(CloseProjectmenu);
+
+        Printmenu.setText(resourceMap.getString("Printmenu.text")); // NOI18N
+        Printmenu.setName("Printmenu"); // NOI18N
+        fileMenu.add(Printmenu);
+
+        javax.swing.ActionMap actionMap = org.jdesktop.application.Application.getInstance(deconvolutionapp.DeConvolutionApp_RevD.class).getContext().getActionMap(main_Frame.class, this);
+        exitMenuItem.setAction(actionMap.get("quit")); // NOI18N
+        exitMenuItem.setName("exitMenuItem"); // NOI18N
+        fileMenu.add(exitMenuItem);
+
+        menuBar.add(fileMenu);
+
+        Viewmenu.setText(resourceMap.getString("Viewmenu.text")); // NOI18N
+        Viewmenu.setEnabled(false);
+        Viewmenu.setName("Viewmenu"); // NOI18N
+
+        OrginalSpectrummenu.setSelected(true);
+        OrginalSpectrummenu.setText(resourceMap.getString("OrginalSpectrummenu.text")); // NOI18N
+        OrginalSpectrummenu.setToolTipText(resourceMap.getString("OrginalSpectrummenu.toolTipText")); // NOI18N
+        OrginalSpectrummenu.setName("OrginalSpectrummenu"); // NOI18N
+        Viewmenu.add(OrginalSpectrummenu);
+
+        viewSeperator.setName("viewSeperator"); // NOI18N
+        Viewmenu.add(viewSeperator);
+
+        LSSpectrummenu.setText(resourceMap.getString("LSSpectrummenu.text")); // NOI18N
+        LSSpectrummenu.setToolTipText(resourceMap.getString("LSSpectrummenu.toolTipText")); // NOI18N
+        LSSpectrummenu.setName("LSSpectrummenu"); // NOI18N
+        Viewmenu.add(LSSpectrummenu);
+
+        MLSpectrummenu.setText(resourceMap.getString("MLSpectrummenu.text")); // NOI18N
+        MLSpectrummenu.setToolTipText(resourceMap.getString("MLSpectrummenu.toolTipText")); // NOI18N
+        MLSpectrummenu.setName("MLSpectrummenu"); // NOI18N
+        Viewmenu.add(MLSpectrummenu);
+
+        CSSpectrummenu.setText(resourceMap.getString("CSSpectrummenu.text")); // NOI18N
+        CSSpectrummenu.setToolTipText(resourceMap.getString("CSSpectrummenu.toolTipText")); // NOI18N
+        CSSpectrummenu.setName("CSSpectrummenu"); // NOI18N
+        Viewmenu.add(CSSpectrummenu);
+
+        menuBar.add(Viewmenu);
+
+        EXEmenu.setText(resourceMap.getString("EXEmenu.text")); // NOI18N
+        EXEmenu.setEnabled(false);
+        EXEmenu.setName("EXEmenu"); // NOI18N
+
+        DefineMZmenu.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_M, java.awt.event.InputEvent.CTRL_MASK));
+        DefineMZmenu.setText(resourceMap.getString("DefineMZmenu.text")); // NOI18N
+        DefineMZmenu.setToolTipText(resourceMap.getString("DefineMZmenu.toolTipText")); // NOI18N
+        DefineMZmenu.setName("DefineMZmenu"); // NOI18N
+        DefineMZmenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                DefineMZmenuActionPerformed(evt);
+            }
+        });
+        EXEmenu.add(DefineMZmenu);
+
+        jSeparator2.setName("jSeparator2"); // NOI18N
+        EXEmenu.add(jSeparator2);
+
+        ConvolutionKernelWizardmenu.setText(resourceMap.getString("ConvolutionKernelWizardmenu.text")); // NOI18N
+        ConvolutionKernelWizardmenu.setToolTipText(resourceMap.getString("ConvolutionKernelWizardmenu.toolTipText")); // NOI18N
+        ConvolutionKernelWizardmenu.setName("ConvolutionKernelWizardmenu"); // NOI18N
+        ConvolutionKernelWizardmenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                ConvolutionKernelWizardmenuActionPerformed(evt);
+            }
+        });
+        EXEmenu.add(ConvolutionKernelWizardmenu);
+
+        EXEseperator2.setName("EXEseperator2"); // NOI18N
+        EXEmenu.add(EXEseperator2);
+
+        ObservationSpectrum.setText(resourceMap.getString("ObservationSpectrum.text")); // NOI18N
+        ObservationSpectrum.setName("ObservationSpectrum"); // NOI18N
+        ObservationSpectrum.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                ObservationSpectrumActionPerformed(evt);
+            }
+        });
+        EXEmenu.add(ObservationSpectrum);
+
+        jSeparator1.setName("jSeparator1"); // NOI18N
+        EXEmenu.add(jSeparator1);
+
+        DeConvolutionWizardmenu.setText(resourceMap.getString("DeConvolutionWizardmenu.text")); // NOI18N
+        DeConvolutionWizardmenu.setToolTipText(resourceMap.getString("DeConvolutionWizardmenu.toolTipText")); // NOI18N
+        DeConvolutionWizardmenu.setEnabled(false);
+        DeConvolutionWizardmenu.setName("DeConvolutionWizardmenu"); // NOI18N
+        DeConvolutionWizardmenu.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                DeConvolutionWizardmenuActionPerformed(evt);
+            }
+        });
+        EXEmenu.add(DeConvolutionWizardmenu);
+
+        menuBar.add(EXEmenu);
+
+        jMenu1.setText(resourceMap.getString("jMenu1.text")); // NOI18N
+        jMenu1.setToolTipText(resourceMap.getString("jMenu1.toolTipText")); // NOI18N
+        jMenu1.setName("jMenu1"); // NOI18N
+
+        jMenuItem1.setText(resourceMap.getString("jMenuItem1.text")); // NOI18N
+        jMenuItem1.setName("jMenuItem1"); // NOI18N
+        jMenu1.add(jMenuItem1);
+
+        menuBar.add(jMenu1);
+
+        helpMenu.setText(resourceMap.getString("helpMenu.text")); // NOI18N
+        helpMenu.setName("helpMenu"); // NOI18N
+
+        jMenuItem2.setText(resourceMap.getString("jMenuItem2.text")); // NOI18N
+        jMenuItem2.setName("jMenuItem2"); // NOI18N
+        helpMenu.add(jMenuItem2);
+
+        aboutMenuItem.setAction(actionMap.get("showAboutBox")); // NOI18N
+        aboutMenuItem.setName("aboutMenuItem"); // NOI18N
+        helpMenu.add(aboutMenuItem);
+
+        menuBar.add(helpMenu);
+
+        statusPanel.setName("statusPanel"); // NOI18N
+
+        statusPanelSeparator.setName("statusPanelSeparator"); // NOI18N
+
+        statusMessageLabel.setName("statusMessageLabel"); // NOI18N
+
+        statusAnimationLabel.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        statusAnimationLabel.setName("statusAnimationLabel"); // NOI18N
+
+        progressBar.setName("progressBar"); // NOI18N
+
+        javax.swing.GroupLayout statusPanelLayout = new javax.swing.GroupLayout(statusPanel);
+        statusPanel.setLayout(statusPanelLayout);
+        statusPanelLayout.setHorizontalGroup(
+            statusPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(statusPanelSeparator, javax.swing.GroupLayout.DEFAULT_SIZE, 860, Short.MAX_VALUE)
+            .addGroup(statusPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(statusMessageLabel)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 690, Short.MAX_VALUE)
+                .addComponent(progressBar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(statusAnimationLabel)
+                .addContainerGap())
+        );
+        statusPanelLayout.setVerticalGroup(
+            statusPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(statusPanelLayout.createSequentialGroup()
+                .addComponent(statusPanelSeparator, javax.swing.GroupLayout.PREFERRED_SIZE, 2, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(statusPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(statusMessageLabel)
+                    .addComponent(statusAnimationLabel)
+                    .addComponent(progressBar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(3, 3, 3))
+        );
+
+        DirectoryPopUp.setName("DirectoryPopUp"); // NOI18N
+
+        openProject.setText(resourceMap.getString("openProject.text")); // NOI18N
+        openProject.setName("openProject"); // NOI18N
+        DirectoryPopUp.add(openProject);
+
+        setComponent(mainPanel);
+        setMenuBar(menuBar);
+        setStatusBar(statusPanel);
+    }// </editor-fold>//GEN-END:initComponents
+
+    private void showDataDependentItems(Boolean status){
+        SaveProjectmenu.setEnabled(status);
+        CloseProjectmenu.setEnabled(status);
+        Viewmenu.setEnabled(status);
+        EXEmenu.setEnabled(status);
+    }
+    
+    private void updateDirectory(){
+        
+        try{
+            // Scan the working directory
+            File WorkingDirectory = new File(ConfigFile.getConfigParameter("/root/DefaultDirectory"));
+            String SelectedDirectory = new File(ConfigFile.getConfigParameter("/root/LastOpenedDirectory")).getName();
+            TreePath SelectedDirectoryPath = null;
+            File[] ProjectFiles = WorkingDirectory.listFiles();
+
+            //Populate the Directory Tree
+            DefaultMutableTreeNode root = new DefaultMutableTreeNode(WorkingDirectory.getAbsolutePath());
+            DefaultMutableTreeNode folder = null;
+            DefaultMutableTreeNode file = null;
+
+            // Scan the directory and populate the Jtree
+            for (int i = 0; i < ProjectFiles.length;i++){
+                //Check to see that it is a folder
+                if (ProjectFiles[i].isDirectory()){
+                    folder = new DefaultMutableTreeNode(ProjectFiles[i].getName()); //scan the folders
+                    root.add(folder); //add the folder to the root
+                    
+                    //Check to see if this is the directory node
+                    if(ProjectFiles[i].getName().equalsIgnoreCase(SelectedDirectory)){
+                        SelectedDirectoryPath = new TreePath(folder.getPath());
+                    }
+                    
+                    String[] FileNames = ProjectFiles[i].list(); //get a list of the contents
+
+                    if (FileNames != null){
+                        for (int j = 0; j < FileNames.length;j++){
+                            file = new DefaultMutableTreeNode(FileNames[j]); //scan the files
+                            folder.add(file);
+                        } 
+                    }  
+                }
+            }
+
+            //Update the Directory Tree with the node list
+            Directory.setModel(new javax.swing.JTree(root).getModel());
+            
+            //Set the open directory to the
+            if(SelectedDirectoryPath != null){
+                Directory.setSelectionPath(SelectedDirectoryPath);
+                Directory.expandPath(SelectedDirectoryPath);
+            }
+            
+            //Validate the directory to show the changes
+            Directory.validate();
+        }
+        catch (Exception ex){
+            ex.printStackTrace();
+        }
+    }
+    
+    private void populateOrginalDataPane() {
+        
+        try{
+            //Create the MZ Chart
+            XYChartHelpers mzChart = new XYChartHelpers(ChartType.MZChart, mzPanel.getSize());
+            mzPanel.add(mzChart.returnFullChart(this.orginal_data.getMZVector(), 
+                                                this.orginal_data.getTotalMZRangeArray()),
+                                                0);
+
+            //ChartPanel, then casting into a XYPlot, then adding a event listener
+            ChartPanel mzchartPanel = (ChartPanel) mzPanel.getComponent(0);
+            XYPlot plot = (XYPlot) mzchartPanel.getChart().getPlot();
+            
+            plot.addChangeListener(new PlotChangeListener() {
+                                        public void plotChanged(PlotChangeEvent event) {
+                                        mzChartaxisChanged(event);
+                                    }
+                                });
+
+            mzPanel.validate();
+            mzPanel.repaint();
+
+            //Create the Ion Chart
+            XYChartHelpers IonChart = new XYChartHelpers(ChartType.IonChart, ionPanel.getSize());
+            ionPanel.add(IonChart.returnFullChart(this.orginal_data.getIonVectorArray(), 
+                                                  this.orginal_data.getTotalIonRangeArray(0, this.orginal_data.getMZVector().length)),
+                                                  0);
+            ionPanel.validate();
+            ionPanel.repaint();
+            
+            //Set the local Variables   
+            double lower = plot.getDomainAxis().getLowerBound();
+            double upper = plot.getDomainAxis().getUpperBound();
+            this.MZ_Value = (upper - lower)/2 + lower;
+            this.MZ_Range = (upper - lower)/2;
+            
+            //Clear the objects
+            mzChart = null;
+            IonChart = null;
+
+            //Update the evRange text field
+            seteVRangeText(lower,upper);
+        }
+        catch (Exception ex){
+            ex.printStackTrace();
+        }
+
+    }
+    
+    private void seteVRangeText(Double lower, Double upper){
+        //Update the text field on the screen to allow the operator to know that something has changed
+        eVRange.setText("Aggregated eV spectra for m/z = " + 
+            String.format("%.2f", lower) +
+            " to m/z = " +
+            String.format("%.2f", upper));
+    }
+    
+    private void rescaleOrginalIONchart(Double StartingMZ, Double EndingMZ){
+        int[] newION;
+        
+        try{
+            XYChartHelpers helper = new XYChartHelpers(ChartType.IonChart, ionPanel.getSize());
+            
+            int indexStart  = this.orginal_data.getMZindex(StartingMZ);
+            int indexEnd    = this.orginal_data.getMZindex(EndingMZ);
+            
+            //Get New Vector
+            newION = this.orginal_data.getTotalIonRangeArray(indexStart, indexEnd);
+            
+            //ChartPanel, then casting into a XYPlot
+            ChartPanel ionchartPanel = (ChartPanel) ionPanel.getComponent(0);
+            XYPlot plot = (XYPlot) ionchartPanel.getChart().getPlot();
+            
+            plot.setDataset(helper.createDataset(this.orginal_data.getIonVectorArray(), newION));
+            
+            //Update the evRange text field
+            seteVRangeText(StartingMZ,EndingMZ);
+            
+        }
+        catch (Exception ex){
+            ex.printStackTrace();
+        }
+    }
+    
+    private void NewProjectmenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NewProjectmenuActionPerformed
+        // TODO add your handling code here:
+        ProjectManager_JDialog ProjectManager = new ProjectManager_JDialog(this.getFrame(),ConfigFile,true);
+        
+        //Show the frame
+        ProjectManager.setVisible(true);
+        
+        //Populate the local Spectrum from the class
+        try{
+            orginal_data = ProjectManager.getMSDataStructure();
+            
+            //Show menu items
+            this.showDataDependentItems(Boolean.TRUE);
+            
+            //Load Orginal Graph Pane
+            this.populateOrginalDataPane();
+            
+            //Update the Directory
+            updateDirectory();
+        }
+        catch (Exception ex){
+            ex.printStackTrace();
+        }
+        finally{
+            ProjectManager = null;
+        }
+
+    }//GEN-LAST:event_NewProjectmenuActionPerformed
+
+    private void OpenProjectmenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpenProjectmenuActionPerformed
+        
+        try{
+                //get the Config file default directory
+                JFileChooser fc = new JFileChooser(ConfigFile.getConfigParameter("/root/DefaultDirectory"));
+                fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                int returnValue = fc.showOpenDialog(null); //opens a dialog to select a file
+ 
+                if (returnValue == JFileChooser.APPROVE_OPTION){
+                    
+                    //Find the extension type of the File
+                    String PathName = fc.getSelectedFile().getAbsolutePath();
+                    String ext = (PathName.lastIndexOf(".")==-1)?
+                            "":PathName.substring(PathName.lastIndexOf(".")+1,
+                            PathName.length());
+                    
+                    if (ext.contentEquals("xml")){
+                        //Create a XML Loader Object
+                        XMLloader myXMLloader = new XMLloader(fc.getSelectedFile());
+                        myXMLloader.loadXMLFile();
+                    
+                        //Now Load the MS DataStrucure into memory
+                        orginal_data = myXMLloader.getMSDataStructure();
+                        
+                        //trash the XML loader
+                        myXMLloader = null;
+                    }
+                    else if (ext.contentEquals("ser")){
+                        //Create a Serialized Loader
+                        FileInputStream mySERloader = new FileInputStream(fc.getSelectedFile());
+                        ObjectInputStream os = new ObjectInputStream(mySERloader);
+                        
+                        //Now Load the MS DataStrucure into memory
+                        orginal_data = (MS_DataStructure) os.readObject();
+                        
+                        //trash the Serialized loader
+                        os.close();
+                    }
+                    else{
+                        throw new Exception("Incorrect File Type Choosen, select either .xml or .ser file");
+                    }
+                    
+                    //Show menus
+                    this.showDataDependentItems(Boolean.TRUE);
+                    
+                    //Check to see if a convolution file exists
+                    File doesKernelfile = new File(fc.getCurrentDirectory() + "\\" + "ConvolutionKernals.xml");
+                    if (doesKernelfile.exists()){
+                        //LoadConvolutionmenu.setEnabled(true);
+                    }
+                    
+                    //Load Orginal Graph Pane
+                    populateOrginalDataPane();
+                    
+                    //Save the Last Opened File back to Config
+                    //System.out.println("Last Opened Directory : " + fc.getCurrentDirectory().getPath());
+                    ConfigFile.setLastDirectory(fc.getCurrentDirectory());
+                    
+                    //Update the Directory Tree
+                    updateDirectory();
+                    
+                    //Make sure the objects get GC()
+                    fc = null;
+                    
+                    //Run Garbage Collector
+                    System.gc();
+                }
+        }
+        catch(Exception ex){
+                ex.printStackTrace();
+        }
+    }//GEN-LAST:event_OpenProjectmenuActionPerformed
+
+    private void CloseProjectmenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_CloseProjectmenuActionPerformed
+        // TODO add your handling code here:
+        //Clear out the memory
+        orginal_data = null;
+        
+        //Clear out the plots
+        mzPanel.removeAll();
+        mzPanel.validate();
+        mzPanel.repaint();
+        
+        ionPanel.removeAll();
+        ionPanel.validate();
+        ionPanel.repaint();
+        
+        KernelPanel.removeAll();
+        KernelPanel.validate();
+        KernelPanel.repaint();
+        
+        ObservationPanel.removeAll();
+        ObservationPanel.validate();
+        ObservationPanel.repaint();
+        
+        LSPanel.removeAll();
+        LSPanel.validate();
+        LSPanel.repaint();
+        
+        MLPanel.removeAll();
+        MLPanel.validate();
+        MLPanel.repaint();
+        
+        ISTAPanel.removeAll();
+        ISTAPanel.validate();
+        ISTAPanel.repaint();
+        
+        MMVPanel.removeAll();
+        MMVPanel.validate();
+        MMVPanel.repaint();
+        
+        //Clear the eVRange Text Field
+        this.seteVRangeText(0.0, 0.0);
+        
+        //Run Garbage Collector
+        System.gc();
+        
+        //Un-show menus
+        this.showDataDependentItems(Boolean.FALSE);
+        DeConvolutionWizardmenu.setEnabled(false);
+    }//GEN-LAST:event_CloseProjectmenuActionPerformed
+
+    private void DefineMZmenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_DefineMZmenuActionPerformed
+               
+        //Get the Current Domain Axis, by casting the JPanel into a 
+        //ChartPanel, then casting into a XYPlot
+        ChartPanel mzchartPanel = (ChartPanel) mzPanel.getComponent(0);
+        XYPlot plot = (XYPlot) mzchartPanel.getChart().getPlot();
+        
+        //Call the JDialog and prepopulate with the current values
+        MZSelectrion_JDialog MZSelection = new MZSelectrion_JDialog(this.getFrame(),
+                                            Boolean.TRUE,
+                                            plot.getDomainAxis().getLowerBound(),
+                                            plot.getDomainAxis().getUpperBound());
+        //display the Jdailog
+        MZSelection.setVisible(true);
+        
+        //Now try and get the values
+        try{
+            //Reset the Local Values
+            Double NewMzValue = MZSelection.getMZValue();
+            Double NewMZ_Range = MZSelection.getMZRange();
+            
+            //Call MZ Reprint Method
+            plot.setNotify(false);  //temporarly disable change events
+            plot.getDomainAxis().setLowerBound((NewMzValue - NewMZ_Range));
+            plot.setNotify(true);   //reenable change events
+            plot.getDomainAxis().setUpperBound((NewMzValue + NewMZ_Range));
+            
+            //Call the Ion Reprint Method
+            //rescaleOrginalIONchart((this.MZ_Value - this.MZ_Range), (this.MZ_Value + this.MZ_Range));
+            //Handleded by axis change listener
+            
+        }
+        catch (Exception ex){
+            ex.printStackTrace();
+        }
+        finally{
+            //drop the objects
+            plot = null;
+            MZSelection = null;
+        }
+    
+    }//GEN-LAST:event_DefineMZmenuActionPerformed
+
+    private void ConvolutionKernelWizardmenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ConvolutionKernelWizardmenuActionPerformed
+        
+        // Open the Convolution Manager
+        ConvolutionManager_JDialog ConvolutionManager = 
+                                new ConvolutionManager_JDialog(this.getFrame(),
+                                                                this.ConfigFile,
+                                                                true,
+                                                                this.orginal_data,
+                                                                this.MZ_Value,
+                                                                this.MZ_Range);
+
+        //Show the frame
+        ConvolutionManager.setVisible(true);
+
+        //Waits till close,,,
+
+        //Give back memory
+        ConvolutionManager = null;
+
+    }//GEN-LAST:event_ConvolutionKernelWizardmenuActionPerformed
+
+    private void ObservationSpectrumActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ObservationSpectrumActionPerformed
+        
+        //Get the Current Domain Axis, by casting the JPanel into a 
+        //ChartPanel, then casting into a XYPlot
+        ChartPanel mzchartPanel = (ChartPanel) mzPanel.getComponent(0);
+        XYPlot plot = (XYPlot) mzchartPanel.getChart().getPlot();
+        
+        //Call the JDialog and prepopulate with the current values
+        MZSelectrion_JDialog MZSelection = new MZSelectrion_JDialog(this.getFrame(),
+                                            Boolean.TRUE,
+                                            plot.getDomainAxis().getLowerBound(),
+                                            plot.getDomainAxis().getUpperBound());
+        //display the Jdailog
+        MZSelection.setVisible(true);
+        
+        //Now try and get the values
+        try{
+            //Reset the Local Values
+            this.MZ_Value_Observation = MZSelection.getMZValue(); //Observation Vector Value
+            this.MZ_Range_Observation = MZSelection.getMZRange(); //Observation Vector Range
+            
+            //Show the DeCon menu and Open Kernel menu
+            DeConvolutionWizardmenu.setEnabled(true);
+        }
+        catch (Exception ex){
+            ex.printStackTrace();
+        }
+        finally{
+            //drop the objects
+            plot = null;
+            MZSelection = null;
+        }
+    }//GEN-LAST:event_ObservationSpectrumActionPerformed
+
+    private void DeConvolutionWizardmenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_DeConvolutionWizardmenuActionPerformed
+        
+        //Local Variables
+        String RunName;
+        Boolean DebugMode = Boolean.FALSE;
+        
+        ParameterSetup_JDialog ParameterSetup = 
+                new ParameterSetup_JDialog( this.getFrame(),
+                                            ConfigFile,
+                                            true,
+                                            MZ_Value_Observation,
+                                            MZ_Range_Observation);
+        
+        //display the Jdailog to collect the desired run parameters
+        ParameterSetup.setVisible(true);
+        
+        //Now try to perform calculations,,,,
+        try{
+            //Read in the RunTimeName from the parameter setup
+            RunName = ParameterSetup.getRunName();
+            System.out.println("Performing Calculation on: " + RunName);
+            System.out.println("Debug Mode Set to: " + Boolean.toString(DebugMode));
+            
+            //Create a DeConvolver
+            //Set the third parameter to true to enable debug mode, which uses a fixed convolution kernel
+            //and generated y-vector to test the validity of the solution.
+            DeConvolver DeConvolverRunTime = new DeConvolver(RunName,orginal_data,ConfigFile,DebugMode);
+            
+            //Populate the Convolution Kernel Window
+            //Create the Result Chart
+                XYChartHelpers IonChart = new XYChartHelpers(ChartType.ResultChart, KernelPanel.getSize());
+                
+                if(DebugMode == Boolean.FALSE){
+                    KernelPanel.add(IonChart.returnFullChart(orginal_data.getIonVectorArray(), 
+                                                      DeConvolverRunTime.getConvolutionVector()),
+                                                      0);
+                }
+                else{
+                    KernelPanel.add(IonChart.returnFullChart(DeConvolverRunTime.getConvolutionVector()),
+                                                      0);
+                }
+                KernelPanel.validate();
+                KernelPanel.repaint();
+                
+                IonChart = null;
+                
+            //Populate the Y Vector Window
+            //Create the Result Chart
+                IonChart = new XYChartHelpers(ChartType.ResultChart, ObservationPanel.getSize());
+                
+                if(DebugMode == Boolean.FALSE){
+                    ObservationPanel.add(IonChart.returnFullChart(orginal_data.getIonVectorArray(), 
+                                                      DeConvolverRunTime.getYvector()),
+                                                      0);
+                }
+                else{
+                    ObservationPanel.add(IonChart.returnFullChart(DeConvolverRunTime.getYvector()),
+                                                      0);
+                }
+                ObservationPanel.validate();
+                ObservationPanel.repaint();
+                
+                IonChart = null;
+                
+            //Run the DeConvolver
+            DeConvolverRunTime.executeDeConvolution();
+            
+            //Populate the Results Windows
+            String methodsPerformed = DeConvolverRunTime.getMethodsRan();
+            
+            if (methodsPerformed.contains("LS")){
+                
+                IonChart = new XYChartHelpers(ChartType.ResultChart, LSPanel.getSize());
+                
+                if(DebugMode == Boolean.FALSE){
+                    LSPanel.add(IonChart.returnFullChart(orginal_data.getIonVectorArray(), 
+                                                      DeConvolverRunTime.getLSxestimate()),
+                                                      0);
+                }
+                else{
+                    LSPanel.add(IonChart.returnFullChart(DeConvolverRunTime.getLSxestimate()),
+                                                      0);
+                }
+                LSPanel.validate();
+                LSPanel.repaint();
+                
+                IonChart = null;
+            }
+            
+            if (methodsPerformed.contains("ML")){
+                IonChart = new XYChartHelpers(ChartType.ResultChart, MLPanel.getSize());
+                
+                if(DebugMode == Boolean.FALSE){
+                    MLPanel.add(IonChart.returnFullChart(orginal_data.getIonVectorArray(), 
+                                                      DeConvolverRunTime.getMLxestimate()),
+                                                      0);
+                }
+                else{
+                    MLPanel.add(IonChart.returnFullChart(DeConvolverRunTime.getMLxestimate()),
+                                                      0);
+                }
+                MLPanel.validate();
+                MLPanel.repaint();
+                
+                IonChart = null;
+            }
+            
+            if (methodsPerformed.contains("MMV")){
+                
+            }
+            
+            System.out.println("Finished Run");
+            
+        }
+        catch (Exception ex){
+            ex.printStackTrace();
+        }
+        finally{
+            //drop the object
+            ParameterSetup = null;
+        }
+    }//GEN-LAST:event_DeConvolutionWizardmenuActionPerformed
+
+    private void DirectoryMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_DirectoryMouseClicked
+        
+        // On right mouse click show pop-up
+        if(evt.getButton() > 1){
+            DirectoryPopUp.show(evt.getComponent(), evt.getX(), evt.getY());
+        }
+
+    }//GEN-LAST:event_DirectoryMouseClicked
+
+    private void mzChartaxisChanged(PlotChangeEvent event) {
+        
+        //Get the Current Domain Axis, by casting the JPanel into a 
+        //ChartPanel, then casting into a XYPlot
+        ChartPanel mzchartPanel = (ChartPanel) mzPanel.getComponent(0);
+        XYPlot plot = (XYPlot) mzchartPanel.getChart().getPlot();
+        
+        //System.out.println("Domain MIN(): " + Double.toString(plot.getDomainAxis().getLowerBound()));
+        //System.out.println("Domain MAX(): " + Double.toString(plot.getDomainAxis().getUpperBound()));
+        
+        //Set the local Variables   
+        double lower = plot.getDomainAxis().getLowerBound();
+        double upper = plot.getDomainAxis().getUpperBound();
+        this.MZ_Value = (upper - lower)/2 + lower;
+        this.MZ_Range = (upper - lower)/2;
+
+        //Redraw the ION Orginal Chart with the new Domain Values
+        rescaleOrginalIONchart((this.MZ_Value - this.MZ_Range), (this.MZ_Value + this.MZ_Range));
+       
+    }
+    
+    
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JCheckBoxMenuItem CSSpectrummenu;
+    private javax.swing.JMenuItem CloseProjectmenu;
+    private javax.swing.JMenuItem ConvolutionKernelWizardmenu;
+    private javax.swing.JMenuItem DeConvolutionWizardmenu;
+    private javax.swing.JTabbedPane DeConvolvedTabPanel;
+    private javax.swing.JMenuItem DefineMZmenu;
+    private javax.swing.JTree Directory;
+    private javax.swing.JPanel DirectoryPanel;
+    private javax.swing.JPopupMenu DirectoryPopUp;
+    private javax.swing.JMenu EXEmenu;
+    private javax.swing.JPopupMenu.Separator EXEseperator2;
+    private javax.swing.JPanel ISTAPanel;
+    private javax.swing.JPanel ISTATab;
+    private javax.swing.JPanel KernelPanel;
+    private javax.swing.JPanel KernelTab;
+    private javax.swing.JPanel LSPanel;
+    private javax.swing.JCheckBoxMenuItem LSSpectrummenu;
+    private javax.swing.JPanel LSTab;
+    private javax.swing.JPanel MLPanel;
+    private javax.swing.JCheckBoxMenuItem MLSpectrummenu;
+    private javax.swing.JPanel MLTab;
+    private javax.swing.JPanel MMVPanel;
+    private javax.swing.JPanel MMVTab;
+    private javax.swing.JMenuItem NewProjectmenu;
+    private javax.swing.JPanel ObservationPanel;
+    private javax.swing.JMenuItem ObservationSpectrum;
+    private javax.swing.JPanel ObservationTab;
+    private javax.swing.JMenuItem OpenProjectmenu;
+    private javax.swing.JPanel OrginalPanel;
+    private javax.swing.JCheckBoxMenuItem OrginalSpectrummenu;
+    private javax.swing.JMenuItem Printmenu;
+    private javax.swing.JMenuItem SaveProjectmenu;
+    private javax.swing.JMenu Viewmenu;
+    private javax.swing.JPanel WorkspacePanel;
+    private javax.swing.JTabbedPane WorkspaceTabPanel;
+    private javax.swing.JLabel eVDomainLabel;
+    private javax.swing.JTextField eVRange;
+    private javax.swing.JPopupMenu.Separator fileSeperator;
+    private javax.swing.JPanel ionPanel;
+    private javax.swing.JMenu jMenu1;
+    private javax.swing.JMenuItem jMenuItem1;
+    private javax.swing.JMenuItem jMenuItem2;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JPopupMenu.Separator jSeparator1;
+    private javax.swing.JPopupMenu.Separator jSeparator2;
+    private javax.swing.JPanel mainPanel;
+    private javax.swing.JMenuBar menuBar;
+    private javax.swing.JLabel mzDomainlabel;
+    private javax.swing.JPanel mzPanel;
+    private javax.swing.JMenuItem openProject;
+    private javax.swing.JProgressBar progressBar;
+    private javax.swing.JLabel statusAnimationLabel;
+    private javax.swing.JLabel statusMessageLabel;
+    private javax.swing.JPanel statusPanel;
+    private javax.swing.JPopupMenu.Separator viewSeperator;
+    // End of variables declaration//GEN-END:variables
+    private final Timer messageTimer;
+    private final Timer busyIconTimer;
+    private final Icon idleIcon;
+    private final Icon[] busyIcons = new Icon[15];
+    private int busyIconIndex = 0;
+    private JDialog aboutBox;
+}
